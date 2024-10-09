@@ -1,0 +1,190 @@
+<!--Sentence maker : This web application helps people with cognitive disabilities to construct a sentence easily
+with the help of a single key(space bar) from the keyboard. The webapp consist of three phases :
+first phase : uses a single key press  to select a group of alphabet from the set of alphabets which are displayed
+at an interval of 3secs
+second phase : uses a single key press to select a single letter from the group selected in first phase, each of the
+letters displayed at an interval of 3secs
+when in second phase, a double key press moves the control back to the first phase
+third phase : uses a single key press to add the selected letter to the sentence -->
+
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentence maker</title>
+    <style>
+        body {
+          display: flex;
+          flex-direction: column;
+          /* Stack buttons vertically */
+          align-items: center;
+          /* Center buttons horizontally */
+          margin-top: 50px;
+          /* Add some space at the top */
+        }
+
+        button {
+          padding: 10px;
+          font-size: 16px;
+          margin: 20px;
+          /* Add margin between buttons */
+          width: 200px;
+          /* Set a fixed width for the buttons */
+        }
+
+
+        .active {
+          background-color: green;
+          color: white;
+        }
+
+        .inactive {
+          background-color: gray;
+          color: white;
+        }
+    </style>
+</head>
+
+<body>
+<button id="button1" class="active">Main Group</button>
+<button id="button2" class="hidden">Sub Group</button>
+<label for="txtSentence">Sentence : </label><textarea id="txtSentence" cols="25" rows="5"> </textarea>
+
+<script>
+    const groups = [
+      "A B C D", "E F G H", "I J K L", "M N O P",
+      "Q R S T", "U V W X", "Y Z"
+    ];
+    let subGroups = [];
+    let currentIndex = 0;
+    let arrCheck = false;
+    let mainIntervalId;
+    let subIntervalId;
+    let lastPressTime = 0;
+
+    const mainButton = document.getElementById('button1');
+    const selectedBox = document.getElementById('button2');
+    const sentenceBox = document.getElementById('txtSentence');
+
+    //function to display contents of main button
+    function updateMainSection() {
+      mainButton.textContent = groups[currentIndex];
+      currentIndex = (currentIndex + 1) % groups.length;
+    }
+    //function to display contents of sub button
+    function updateSubSection() {
+      selectedBox.textContent = subGroups[currentIndex];
+      currentIndex = (currentIndex + 1) % subGroups.length;
+    }
+
+    // Function to activate a button and deactivate the other
+    function toggleButtons() {
+      if (button1.classList.contains("active")) {
+        //console.log("btn1 inactive")
+        // Hide and deactivate button1
+        button1.classList.remove("active");
+        button1.classList.add("inactive", "hidden");
+
+        // Show and activate button2
+        button2.classList.remove("hidden");
+        button2.classList.remove("inactive");
+        button2.classList.add("active");
+      } else {
+        //console.log("btn1 active")
+        // Hide and deactivate button2
+        button2.classList.remove("active");
+        button2.classList.add("inactive", "hidden");
+
+        // Show and activate button1
+        button1.classList.remove("hidden");
+        button1.classList.remove("inactive");
+        button1.classList.add("active");
+      }
+    }
+
+    let singleClickTimer;
+    let clickDelay = 250; // Delay for detecting a double-click
+
+    //Event Listener to perform the processing while space bar key is pressed
+    document.addEventListener('keydown', (event) => {
+      console.log("keydown: " + event.code)
+      if (event.code === "Space") {
+        event.preventDefault(); // Prevent default behavior of the space bar
+
+        const currentTime = new Date().getTime();
+        const timeDiff = currentTime - lastPressTime;
+
+        // Check if timer exists (indicating a potential double-click)
+        if (singleClickTimer) {
+          console.log("double click: ")
+          clearTimeout(singleClickTimer);  // Cancel single-click action
+          singleClickTimer = null;         // Clear timer
+
+          //if double click while on sub button
+          if (button2.classList.contains("active")) {
+            console.log('escape')
+            clearInterval(subIntervalId);
+            subGroups.length = 0;
+            currentIndex = 0;
+            selectedBox.textContent = '';
+            mainIntervalId = setInterval(updateMainSection, 3000);
+            toggleButtons(); // Double press in button2 switches back to button1
+          }             // Trigger double-click action
+        }
+        else {
+          console.log("single click: ")
+          console.log("Groups "+groups)
+          console.log("CurrentIndex "+ currentIndex)
+          // Set timer to trigger single-click if no second click happens
+          singleClickTimer = setTimeout(() => {
+          //if single click on main button
+            if (button1.classList.contains("active")) {
+              if (subGroups.length == 0) {
+
+                clearInterval(mainIntervalId);
+
+                subGroups = groups[currentIndex-1].split(' ')
+                selectedBox.textContent = subGroups[0]
+                currentIndex = 1;
+                subIntervalId = setInterval(updateSubSection, 2000);
+              }
+              toggleButtons(); // Single press in button1 switches to button2
+            }
+            //if single click on sub button
+            else if (button2.classList.contains("active")) {
+              if (currentIndex == subGroups.length - 1 && !arrCheck) {
+                arrCheck = true
+              }
+
+              if (currentIndex == 0 && arrCheck) {
+
+                sentenceBox.textContent += subGroups[subGroups.length - 1];
+
+                arrCheck = false
+              }
+
+              else {
+                sentenceBox.textContent += subGroups[currentIndex - 1];
+              }
+
+            }
+            singleClickTimer = null;
+          }, clickDelay);
+        }
+        // Update last press time
+        lastPressTime = currentTime;
+      }
+    });
+
+
+    mainButton.addEventListener('click', () => {
+      selectedBox.textContent = mainButton.textContent;
+    });
+    
+    //Initial call to start the cycle
+    updateMainSection();
+    mainIntervalId = setInterval(updateMainSection, 2000);
+</script>
